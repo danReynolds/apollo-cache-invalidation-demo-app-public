@@ -1,0 +1,20 @@
+version: '3'
+services:
+  server:
+    container_name: 'cache_invalidation_example_server'
+    command: 'npm run start'
+    volumes:
+      - ./server:/app
+    build: .
+    ports:
+      - 4000:4000
+  client:
+    container_name: 'cache_invalidation_example_client'
+    command: 'npm start'
+    volumes:
+      - ./client:/app
+    build: .
+    ports:
+      - 3000:3000
+    stdin_open: true
+    tty: true
