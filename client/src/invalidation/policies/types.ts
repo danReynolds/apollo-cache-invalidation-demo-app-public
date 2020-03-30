@@ -18,3 +18,7 @@ export interface InvalidationPolicies {
     [typeName: string]: InvalidationPolicy;
 }
 
+export interface InvalidationPolicyManagerConfig {
+    policies: InvalidationPolicies;
+    entityStore: any;
+}

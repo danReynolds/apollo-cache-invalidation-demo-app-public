@@ -61,6 +61,7 @@ function App() {
   }, [makeEmployeesQuery, setEmployeeQueryNumber, employeeQueryNumber]);
 
   const handlePressCreateEmployeeButton = useCallback(() => {
+    console.log(createdEmployeeIndex);
     createEmployee({
       variables: {
         employee_name: `Test employee ${createdEmployeeIndex}`,

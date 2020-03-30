@@ -2,14 +2,18 @@ import {
     InvalidationPolicies,
     InvalidationPolicy,
     InvalidationPolicyEvent,
+    InvalidationPolicyManagerConfig,
 } from './types';
 import { getPolicyEventHandler } from './helpers';
 
 export default class InvalidationPolicyManager {
     private policies: InvalidationPolicies;
+    private entityStore: any;
 
-    constructor(policies: InvalidationPolicies) {
+    constructor(config: InvalidationPolicyManagerConfig) {
+        const { policies, entityStore } = config;
         this.policies = policies;
+        this.entityStore = entityStore;
     }
 
     getPolicy(typeName: string): InvalidationPolicy {
@@ -27,7 +31,7 @@ export default class InvalidationPolicyManager {
         }
         Object.keys(eventPolicyForType).forEach((typeName: string) => {
             const policyAction = eventPolicyForType[typeName];
-            
+
         })
     }
 
