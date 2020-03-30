@@ -38,6 +38,21 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
     return super.write(options);
   }
 
+  // TODO:
+  evict(dataId, fieldName) {
+    const evicted = super.evict(dataId, fieldName);
+
+    if (evicted) {
+      const type = _.get(
+        this.storeEntriesToTypes,
+        _.compact([dataId, fieldName])
+      );
+      // Get invalidation policies type, run its onEvict
+    }
+
+    return evicted;
+  }
+
   watchStoreChanges() {
     const {
       storeEntriesToTypes,
@@ -59,14 +74,12 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
             const typenameForField = incoming[fieldStoreName].__typename;
             const fieldName = fieldNameFromfieldStoreName(fieldStoreName);
             const storeIdentifier = `${dataId}:${fieldName}`;
-            if (!typesToStoreEntries[typenameForField]) {
-              typesToStoreEntries[typenameForField] = [];
-            }
-            debugger;
-            typesToStoreEntries[typenameForField].push({
-              dataId,
-              fieldName
-            });
+            _.setWith(
+              typesToStoreEntries,
+              [typenameForField, dataId, fieldName],
+              true,
+              Object
+            );
             _.setWith(
               storeEntriesToTypes,
               [dataId, fieldName],
@@ -78,11 +91,12 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
         const [typenameForField] = dataId.split(":");
         // If the incoming data is empty, the dataId entry in the cache is being deleted so do nothing
         if (dataId && incoming.__typename) {
-          debugger;
-          if (!typesToStoreEntries[typenameForField]) {
-            typesToStoreEntries[typenameForField] = [];
-          }
-          typesToStoreEntries[typenameForField].push({ dataId });
+          _.setWith(
+            typesToStoreEntries,
+            [typenameForField, dataId],
+            true,
+            Object
+          );
           storeEntriesToTypes[dataId] = typenameForField;
         }
       }
