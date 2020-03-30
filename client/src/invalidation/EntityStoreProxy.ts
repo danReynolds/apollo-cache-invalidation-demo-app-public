@@ -46,7 +46,7 @@ class EntityNameMap {
 
         if (typeToEntityName) {
             if (storeFieldName) {
-                _.setWith(typeToEntityName, ['storeFieldNames', storeFieldName], true, Object);
+                _.setWith(typeToEntityName, ['storeFieldNames', storeFieldName], true);
             }
         } else {
             _.setWith(this.typesToEntityNames, [typename, entityName], {
@@ -55,7 +55,6 @@ class EntityNameMap {
                 storeFieldNames: storeFieldName ? {
                     [storeFieldName]: true
                 } : null,
-                Object
             })
         }
 
@@ -69,7 +68,7 @@ class EntityNameMap {
         const typeName = this.entityNamesToTypes[entityName];
 
         delete this.typesToEntityNames[typeName][entityName];
-        delete this.entityNamesToTypes[typeName];
+        delete this.entityNamesToTypes[entityName];
 
         return true;
     }
@@ -136,6 +135,7 @@ export default class EntityStoreProxy {
 
     evict(dataId: string, fieldName?: string) {
         this.entityNameMap.evict(dataId, fieldName);
+        console.log(`Evicted ${dataId}:${fieldName} from name map`);
     }
 
     readDataForType(typeName: string): ReadDataResult[] {
