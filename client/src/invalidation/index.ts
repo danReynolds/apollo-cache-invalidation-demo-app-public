@@ -18,17 +18,19 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
 
     // @ts-ignore
     this.entityStoreProxy = new EntityStoreProxy({ entityStore: this.data });
-    this.invalidationPolicyManager = new InvalidationPolicyManager({ policies: invalidationPolicies, entityStore: this.entityStoreProxy });
+    this.invalidationPolicyManager = new InvalidationPolicyManager({
+      policies: invalidationPolicies,
+      cacheOperations: {
+        evict: this.evict.bind(this),
+        read: this.entityStoreProxy.readDataForType.bind(this.entityStoreProxy)
+      }
+    });
   }
 
   write(options: any) {
-    const writeResults = Object.values(options.result).forEach((resultValue: any) => {
-      const { __typename: resultValueType } = resultValue;
-      if (resultValueType === "CreateEmployeeResponse") {
-        debugger;
-        const data = this.entityStoreProxy.readDataForType("Employee");
-        debugger;
-      }
+    const { variables, result } = options;
+    const writeResults = Object.values(result).filter((operationResult: any) => !!operationResult.__typename).forEach((operationResult: any) => {
+      this.invalidationPolicyManager.runWritePolicy(operationResult.__typename, { invalidator: { data: operationResult, variables } });
     });
     return super.write(options);
   }
@@ -43,24 +45,3 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
     return evicted;
   }
 }
-
-/*
-Example Config:
-
-const cache = new InvalidationInMemoryCache({
-    typePolicies: {...},
-    fieldPolicies: {...},
-    invalidationPolicies: {
-        CreateFinancialPortalResponse: {
-          onStore: {
-            FinancialPortalsResponse: push(),
-          },
-        },
-        DeleteFinancialPortalResponse: {
-          onStore: {
-            FinancialPortalsResponse: invalidate(),
-          },
-        }
-    }
-})
-*/

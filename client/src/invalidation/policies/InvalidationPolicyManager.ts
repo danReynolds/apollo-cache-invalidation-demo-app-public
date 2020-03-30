@@ -7,39 +7,50 @@ import {
 import { getPolicyEventHandler } from './helpers';
 
 export default class InvalidationPolicyManager {
-    private policies: InvalidationPolicies;
-    private entityStore: any;
+    private config: InvalidationPolicyManagerConfig;
 
     constructor(config: InvalidationPolicyManagerConfig) {
-        const { policies, entityStore } = config;
-        this.policies = policies;
-        this.entityStore = entityStore;
+       this.config = config;
     }
 
     getPolicy(typeName: string): InvalidationPolicy {
-        return this.policies[typeName];
+        return this.config.policies[typeName];
     }
 
     getPolicyForEvent(typeName: string, policyEvent: InvalidationPolicyEvent) {
-        return this.getPolicy(typeName)[getPolicyEventHandler(policyEvent)];
+        const policyForType = this.getPolicy(typeName);
+        if (!policyForType) {
+            return null;
+        }
+        return policyForType[getPolicyEventHandler(policyEvent)];
     }
 
-    runPolicy(typeName: string, policyEvent: InvalidationPolicyEvent) {
+    runPolicy(typeName: string, policyEvent: InvalidationPolicyEvent, policyMeta: object) {
         const eventPolicyForType = this.getPolicyForEvent(typeName, policyEvent);
         if (!eventPolicyForType) {
             return;
         }
         Object.keys(eventPolicyForType).forEach((typeName: string) => {
+            const { cacheOperations } = this.config;
+            const dataForType = cacheOperations.read(typeName);
             const policyAction = eventPolicyForType[typeName];
 
+            dataForType.forEach((entryData => {
+                const metaDataId = entryData.storeFieldName || entryData.dataId;
+                debugger;
+                policyAction(this.config.cacheOperations, entryData, {
+                    ...policyMeta,
+                    id: metaDataId,
+                });
+            }));
         })
     }
 
-    runWritePolicy(typeName: string) {
-        return this.runPolicy(typeName, InvalidationPolicyEvent.Write);
+    runWritePolicy(typeName: string, meta: object) {
+        return this.runPolicy(typeName, InvalidationPolicyEvent.Write, meta);
     }
 
-    runEvictPolicy(typeName: string) {
-        return this.runPolicy(typeName, InvalidationPolicyEvent.Evict);
+    runEvictPolicy(typeName: string, meta: any) {
+        return this.runPolicy(typeName, InvalidationPolicyEvent.Evict, meta);
     }
 }

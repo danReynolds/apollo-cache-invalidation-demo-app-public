@@ -28,6 +28,13 @@ interface ReadTypeResult {
     [index: string]: EntityName,
 }
 
+export interface ReadDataResult {
+    dataId: string;
+    fieldName?: string;
+    storeFieldName?: string;
+    data: any;
+}
+
 class EntityNameMap {
     private typesToEntityNames: TypesToEntityNames = {};
     private entityNamesToTypes: EntityNamesToTypes = {};
@@ -131,34 +138,26 @@ export default class EntityStoreProxy {
         this.entityNameMap.evict(dataId, fieldName);
     }
 
-    readDataForType(typeName: string) {
+    readDataForType(typeName: string): ReadDataResult[] {
         const entityNames = this.entityNameMap.readType(typeName);
-        return Object.values(entityNames).reduce((acc, { dataId, fieldName, storeFieldNames }): any => {
+        return Object.values(entityNames).reduce<ReadDataResult[]>((acc, { dataId, fieldName, storeFieldNames }) => {
             if (!fieldName) {
                 return [
                     ...acc,
                     {
                         dataId,
-                        fieldName,
-                        storeFieldNames,
-                        data: {
-                            data: this.entityStore.lookup(dataId),
-                            id: dataId,
-                        }
+                        data: this.entityStore.lookup(dataId),
                     }
                 ];
             }
             return [
                 ...acc,
-                {
+                ...Object.keys(storeFieldNames).map(storeFieldName => ({
                     dataId,
                     fieldName,
-                    storeFieldNames,
-                    data: Object.keys(storeFieldNames).map(storeFieldName => ({
-                        id: storeFieldName,
-                        data: this.entityStore.get(dataId, storeFieldName),
-                    })),
-                },
+                    storeFieldName,
+                    data: this.entityStore.get(dataId, storeFieldName),
+                }))
             ];
         }, [])
     }

@@ -1,3 +1,5 @@
+import { ReadDataResult } from '../EntityStoreProxy';
+
 export enum InvalidationPolicyEvent {
     Write = "Write",
     Evict = "Evict"
@@ -20,5 +22,16 @@ export interface InvalidationPolicies {
 
 export interface InvalidationPolicyManagerConfig {
     policies: InvalidationPolicies;
-    entityStore: any;
+    cacheOperations: {
+      read: (typeName: string) => ReadDataResult[];
+      evict: (typeName: string, fieldName: string ) => boolean;
+    }
+}
+
+export interface InvalidationPolicyActionConfig {
+  evict: Function;
+}
+
+export interface PolicyActionMeta {
+  id: string;
 }
