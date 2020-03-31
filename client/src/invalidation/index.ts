@@ -1,31 +1,46 @@
 import _ from "lodash";
 import { InMemoryCache, InMemoryCacheConfig, StoreObject } from "@apollo/client";
-import EntityStoreProxy from "./EntityStoreProxy";
 import InvalidationPolicyManager from './policies/InvalidationPolicyManager'
 import { InvalidationPolicies } from './policies/types';
+import { EntityTypeMap, EntityStoreDataReader, EntityStoreWatcher } from './entity-store';
+import { makeEntityId } from './helpers';
 
 interface InvalidationInMemoryCacheConfig extends InMemoryCacheConfig {
   invalidationPolicies: InvalidationPolicies;
 }
 
 export default class InvalidationInMemoryCache extends InMemoryCache {
-  private entityStoreProxy: EntityStoreProxy;
+  private entityTypeMap: EntityTypeMap;
+  private entityStoreDataReader: EntityStoreDataReader;
+  private entityStoreWatcher: EntityStoreWatcher;
   private invalidationPolicyManager: InvalidationPolicyManager;
+  private entityStore: any;
   
   constructor(config: InvalidationInMemoryCacheConfig) {
     const { invalidationPolicies, ...inMemoryCacheConfig } = config;
     super(inMemoryCacheConfig);
 
     // @ts-ignore
-    this.entityStoreProxy = new EntityStoreProxy({ entityStore: this.data });
+    this.entityStore = this.data;
+    this.entityTypeMap = new EntityTypeMap();
+    this.entityStoreDataReader = new EntityStoreDataReader({ entityStore: this.entityStore, entityTypeMap: this.entityTypeMap });
+    this.entityStoreWatcher = new EntityStoreWatcher({ entityStore: this.entityStore, entityTypeMap: this.entityTypeMap });
+
     this.invalidationPolicyManager = new InvalidationPolicyManager({
       policies: invalidationPolicies,
       cacheOperations: {
         evict: this.evict.bind(this),
-        read: this.entityStoreProxy.readDataForType.bind(this.entityStoreProxy)
+        read: this.entityStoreDataReader.readStoreByType.bind(this.entityStoreDataReader),
+        modify: this.modify.bind(this),
       }
     });
   }
+
+  // update(dataId: string, updatedData: any) {
+  //   this.data.merge(...);
+  //   this.broadcastWatches();
+  // }
+
 
   write(options: any) {
     const { variables, result } = options;
@@ -36,12 +51,12 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
   }
 
   evict(dataId: string, fieldName?: string, parent?: object) {
-    const typename = this.entityStoreProxy.readTypeForEntity(dataId, fieldName);
+    const typename = this.entityTypeMap.readTypeByEntityId(makeEntityId(dataId, fieldName));
     const evicted = super.evict(dataId, fieldName);
-
+    console.log(`Evicting ${dataId}:${fieldName} from cache`);
+    
     if (evicted) {
-      console.log(`Evicting ${dataId}:${fieldName} from cache`);
-      this.entityStoreProxy.evict(dataId, fieldName);
+      debugger;
       this.invalidationPolicyManager.runEvictPolicy(typename, { parent });
     }
 

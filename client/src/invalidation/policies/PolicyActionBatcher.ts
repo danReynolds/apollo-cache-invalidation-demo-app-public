@@ -1,11 +1,9 @@
 import { PolicyActionBatch, PolicyActionMeta, PolicyActionOperationType, PolicyActionBatchOperations } from './types';
-import { createEntityName } from '../helpers';
+import { makeEntityId } from '../helpers';
 
 interface PolicyActionBatcherConfig {
     cacheOperations: PolicyActionBatchOperations;
 }
-
-
 export default class PolicyActionBatcher {
     private batch: PolicyActionBatch = {};
 
@@ -16,6 +14,7 @@ export default class PolicyActionBatcher {
 
     batchCacheOperations: PolicyActionBatchOperations = {
         evict: this.batchOperation(PolicyActionOperationType.Evict),
+        modify: this.batchOperation(PolicyActionOperationType.Modify),
     }
 
     constructor(config: PolicyActionBatcherConfig) {
@@ -24,7 +23,7 @@ export default class PolicyActionBatcher {
 
     addAction(operationType: PolicyActionOperationType, dataId: string, fieldName?: string, meta?: object) {
         const { batch } = this;
-        const entityName = createEntityName(dataId, fieldName);
+        const entityName = makeEntityId(dataId, fieldName);
         const batchEntryForEntity = batch[entityName];
 
         // If multiple operations come in for the same entityName such as multiple evictions of the same entity,

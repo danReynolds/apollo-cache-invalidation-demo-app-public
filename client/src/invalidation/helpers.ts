@@ -6,6 +6,6 @@ export function fieldNameFromStoreFieldName(storeFieldName: string) {
   return match && match[0];
 }
 
-export function createEntityName(dataId: string, fieldName?: string | null): string {
+export function makeEntityId(dataId: string, fieldName?: string | null): string {
   return _.compact([dataId, fieldName]).join('.');
 }

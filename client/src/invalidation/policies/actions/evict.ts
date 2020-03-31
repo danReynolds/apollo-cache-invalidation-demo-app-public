@@ -1,11 +1,11 @@
 import { PolicyActionMeta, PolicyActionOperations } from '../types';
-import { ReadDataResult } from '../../EntityStoreProxy';
+import { EntityDataResult } from '../../entity-store/types';
 
-export function evict(predicate: Function) {
-    return ({ evict }: PolicyActionOperations, entryResult: ReadDataResult, meta: PolicyActionMeta) => {
+export function evict(shouldEvict: Function) {
+    return ({ evict }: PolicyActionOperations, entryResult: EntityDataResult, meta: PolicyActionMeta) => {
         const { dataId, fieldName, data } = entryResult;
 
-        if (!predicate || predicate(data, meta)) {
+        if (!shouldEvict || shouldEvict(data, meta)) {
             evict(dataId, fieldName, data);
         }
     }

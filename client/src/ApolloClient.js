@@ -1,5 +1,5 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client";
-import { evict } from "./invalidation/policies/actions";
+import { evict, update } from "./invalidation/policies/actions";
 import InvalidationInMemoryCache from "./invalidation";
 
 export default new ApolloClient({

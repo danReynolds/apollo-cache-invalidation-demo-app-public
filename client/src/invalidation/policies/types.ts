@@ -1,4 +1,4 @@
-import { ReadDataResult } from '../EntityStoreProxy';
+import { EntityDataResult } from '../entity-store/types';
 
 export enum InvalidationPolicyEvent {
     Write = "Write",
@@ -21,12 +21,14 @@ export interface InvalidationPolicies {
 }
 
 export interface PolicyActionCacheOperations {
-  read: (typeName: string) => ReadDataResult[];
+  read: (typeName: string) => EntityDataResult[];
   evict: (typeName: string, fieldName?: string, meta?: object) => boolean;
+  modify: (typeName: string, updatedData?: any) => void;
 }
 
 export interface PolicyActionBatchOperations {
   evict: (typeName: string, fieldName?: string, meta?: object) => void;
+  modify: (typeName: string, updatedData?: any) => void;
 }
 
 export type PolicyActionOperations = PolicyActionCacheOperations | PolicyActionBatchOperations;
@@ -42,7 +44,8 @@ export interface PolicyActionMeta {
 }
 
 export enum PolicyActionOperationType {
-  Evict
+  Evict,
+  Modify
 }
 
 export interface PolicyActionBatchEntry {
