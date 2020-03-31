@@ -30,7 +30,7 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
   write(options: any) {
     const { variables, result } = options;
     const writeResults = Object.values(result).filter((operationResult: any) => !!operationResult.__typename).forEach((operationResult: any) => {
-      this.invalidationPolicyManager.runWritePolicy(operationResult.__typename, { invalidator: { data: operationResult, variables } });
+      this.invalidationPolicyManager.runWritePolicy(operationResult.__typename, { parent: { data: operationResult, variables } });
     });
     return super.write(options);
   }

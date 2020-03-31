@@ -43,6 +43,10 @@ export default class PolicyActionBatcher {
         Object.values(this.batch).forEach(batchEntity => {
             const { dataId, fieldName } = batchEntity;
             if (batchEntity.operationType === PolicyActionOperationType.Evict) {
+                // Eviction does not support evicting by storeFieldNames currently:
+                // https://github.com/apollographql/apollo-client/issues/6098
+                // so instead we just evict by field name, which is one of the reasons that we want to batch
+                // across many store field names that resolve to the same field name
                 evict(dataId, fieldName);
             }
         })
