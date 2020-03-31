@@ -1,4 +1,4 @@
-import { PolicyActionBatch, PolicyActionOperationType, PolicyActionBatchOperations } from './types';
+import { PolicyActionBatch, PolicyActionMeta, PolicyActionOperationType, PolicyActionBatchOperations } from './types';
 import { createEntityName } from '../helpers';
 
 interface PolicyActionBatcherConfig {
@@ -12,7 +12,7 @@ export default class PolicyActionBatcher {
     private config: PolicyActionBatcherConfig;
     
     private batchOperation = (operationType: PolicyActionOperationType) =>
-        (dataId: string, fieldName?: string) => this.addAction(operationType, dataId, fieldName);
+        (dataId: string, fieldName?: string, meta?: object) => this.addAction(operationType, dataId, fieldName, meta);
 
     batchCacheOperations: PolicyActionBatchOperations = {
         evict: this.batchOperation(PolicyActionOperationType.Evict),
@@ -22,7 +22,7 @@ export default class PolicyActionBatcher {
         this.config = config;
     }
 
-    addAction(operationType: PolicyActionOperationType, dataId: string, fieldName?: string) {
+    addAction(operationType: PolicyActionOperationType, dataId: string, fieldName?: string, meta?: object) {
         const { batch } = this;
         const entityName = createEntityName(dataId, fieldName);
         const batchEntryForEntity = batch[entityName];
@@ -34,6 +34,7 @@ export default class PolicyActionBatcher {
                 operationType,
                 dataId,
                 fieldName,
+                meta,
             }
         }
     }
@@ -41,13 +42,13 @@ export default class PolicyActionBatcher {
     run() {
         const { cacheOperations: { evict } } = this.config;
         Object.values(this.batch).forEach(batchEntity => {
-            const { dataId, fieldName } = batchEntity;
+            const { dataId, fieldName, meta } = batchEntity;
             if (batchEntity.operationType === PolicyActionOperationType.Evict) {
                 // Eviction does not support evicting by storeFieldNames currently:
                 // https://github.com/apollographql/apollo-client/issues/6098
                 // so instead we just evict by field name, which is one of the reasons that we want to batch
                 // across many store field names that resolve to the same field name
-                evict(dataId, fieldName);
+                evict(dataId, fieldName, meta);
             }
         })
         this.batch = {};

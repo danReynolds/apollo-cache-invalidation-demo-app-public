@@ -8,7 +8,11 @@ export default new ApolloClient({
     invalidationPolicies: {
       CreateEmployeeResponse: {
         onWrite: {
-          EmployeesResponse: evict(),
+          EmployeesResponse: evict()
+        }
+      },
+      EmployeesResponse: {
+        onEvict: {
           Employee: evict(({ id }) => id === "10")
         }
       }

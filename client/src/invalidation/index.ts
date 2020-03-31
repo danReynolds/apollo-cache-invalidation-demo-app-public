@@ -35,12 +35,14 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
     return super.write(options);
   }
 
-  evict(dataId: string, fieldName?: string) {
+  evict(dataId: string, fieldName?: string, parent?: object) {
+    const typename = this.entityStoreProxy.readTypeForEntity(dataId, fieldName);
     const evicted = super.evict(dataId, fieldName);
 
     if (evicted) {
       console.log(`Evicting ${dataId}:${fieldName} from cache`);
       this.entityStoreProxy.evict(dataId, fieldName);
+      this.invalidationPolicyManager.runEvictPolicy(typename, { parent });
     }
 
     return evicted;

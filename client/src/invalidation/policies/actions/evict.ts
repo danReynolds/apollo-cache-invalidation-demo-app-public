@@ -6,7 +6,7 @@ export function evict(predicate: Function) {
         const { dataId, fieldName, data } = entryResult;
 
         if (!predicate || predicate(data, meta)) {
-            evict(dataId, fieldName);
+            evict(dataId, fieldName, data);
         }
     }
 }

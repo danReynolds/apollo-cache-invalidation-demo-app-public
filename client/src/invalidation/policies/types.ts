@@ -22,11 +22,11 @@ export interface InvalidationPolicies {
 
 export interface PolicyActionCacheOperations {
   read: (typeName: string) => ReadDataResult[];
-  evict: (typeName: string, fieldName?: string) => boolean;
+  evict: (typeName: string, fieldName?: string, meta?: object) => boolean;
 }
 
 export interface PolicyActionBatchOperations {
-  evict: (typeName: string, fieldName?: string) => void;
+  evict: (typeName: string, fieldName?: string, meta?: object) => void;
 }
 
 export type PolicyActionOperations = PolicyActionCacheOperations | PolicyActionBatchOperations;
@@ -38,6 +38,7 @@ export interface InvalidationPolicyManagerConfig {
 
 export interface PolicyActionMeta {
   id: string;
+  parent: object;
 }
 
 export enum PolicyActionOperationType {
@@ -48,6 +49,7 @@ export interface PolicyActionBatchEntry {
   dataId: string;
   fieldName?: string;
   operationType: PolicyActionOperationType;
+  meta?: object;
 }
 
 export interface PolicyActionBatch {

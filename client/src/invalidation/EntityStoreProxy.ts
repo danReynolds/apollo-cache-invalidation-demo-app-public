@@ -77,7 +77,7 @@ class EntityNameMap {
         return this.typesToEntityNames[typeName];
     }
 
-    readTypeForEntity(dataId: string, fieldName: string): string {
+    readTypeForEntity(dataId: string, fieldName?: string): string {
         return this.entityNamesToTypes[createEntityName(dataId, fieldName)];
     }
 }
@@ -169,5 +169,9 @@ export default class EntityStoreProxy {
         const typeName = this.entityNameMap.readTypeForEntity(dataId, fieldName);
         const entityMeta = this.entityNameMap.readEntitiesForType(typeName)[entityName];
         return this.readDataEntriesForMeta(entityMeta);
+    }
+
+    readTypeForEntity(dataId: string, fieldName?: string): string {
+        return this.entityNameMap.readTypeForEntity(dataId, fieldName);
     }
 }

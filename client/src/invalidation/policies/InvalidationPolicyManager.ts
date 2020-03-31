@@ -48,7 +48,6 @@ export default class InvalidationPolicyManager {
                 });
             }));
         });
-        debugger;
         policyActionBatch.run();
     }
 
@@ -56,7 +55,7 @@ export default class InvalidationPolicyManager {
         return this.runPolicy(typeName, InvalidationPolicyEvent.Write, meta);
     }
 
-    runEvictPolicy(typeName: string, meta: any) {
+    runEvictPolicy(typeName: string, meta: object) {
         return this.runPolicy(typeName, InvalidationPolicyEvent.Evict, meta);
     }
 }
