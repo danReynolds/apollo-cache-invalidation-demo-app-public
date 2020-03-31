@@ -20,18 +20,36 @@ export interface InvalidationPolicies {
     [typeName: string]: InvalidationPolicy;
 }
 
-export interface InvalidationPolicyManagerConfig {
-    policies: InvalidationPolicies;
-    cacheOperations: {
-      read: (typeName: string) => ReadDataResult[];
-      evict: (typeName: string, fieldName: string ) => boolean;
-    }
+export interface PolicyActionCacheOperations {
+  read: (typeName: string) => ReadDataResult[];
+  evict: (typeName: string, fieldName?: string) => boolean;
 }
 
-export interface InvalidationPolicyActionConfig {
-  evict: Function;
+export interface PolicyActionBatchOperations {
+  evict: (typeName: string, fieldName?: string) => void;
+}
+
+export type PolicyActionOperations = PolicyActionCacheOperations | PolicyActionBatchOperations;
+
+export interface InvalidationPolicyManagerConfig {
+    policies: InvalidationPolicies;
+    cacheOperations: PolicyActionCacheOperations
 }
 
 export interface PolicyActionMeta {
   id: string;
+}
+
+export enum PolicyActionOperationType {
+  Evict
+}
+
+export interface PolicyActionBatchEntry {
+  dataId: string;
+  fieldName?: string;
+  operationType: PolicyActionOperationType;
+}
+
+export interface PolicyActionBatch {
+  [index: string]: PolicyActionBatchEntry;
 }

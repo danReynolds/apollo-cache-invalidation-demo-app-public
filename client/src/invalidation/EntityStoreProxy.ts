@@ -41,7 +41,7 @@ class EntityNameMap {
 
     write(typename: string, dataId: string, storeFieldName?: string | null) {
         const fieldName = storeFieldName ?  fieldNameFromStoreFieldName(storeFieldName) : null;
-        const entityName =createEntityName(dataId, fieldName);
+        const entityName = createEntityName(dataId, fieldName);
         const typeToEntityName = _.get(this.typesToEntityNames, [typename, entityName]);
 
         if (typeToEntityName) {
@@ -73,16 +73,12 @@ class EntityNameMap {
         return true;
     }
 
-    readType(typeName: string): ReadTypeResult {
+    readEntitiesForType(typeName: string): ReadTypeResult {
         return this.typesToEntityNames[typeName];
     }
 
-    readEntity(dataId: string, fieldName?: string) {
-        return {
-            dataId,
-            fieldName,
-            typeName: this.entityNamesToTypes[createEntityName(dataId, fieldName)],
-        }
+    readTypeForEntity(dataId: string, fieldName: string): string {
+        return this.entityNamesToTypes[createEntityName(dataId, fieldName)];
     }
 }
 
@@ -138,27 +134,40 @@ export default class EntityStoreProxy {
         console.log(`Evicted ${dataId}:${fieldName} from name map`);
     }
 
+    private readDataEntriesForMeta(entityMeta: EntityName) {
+        const { dataId, fieldName, storeFieldNames } = entityMeta;
+        if (!fieldName) {
+            return [
+                {
+                    dataId,
+                    data: this.entityStore.lookup(dataId),
+                }
+            ];
+        }
+        return [
+            ...Object.keys(storeFieldNames).map(storeFieldName => ({
+                dataId,
+                fieldName,
+                storeFieldName,
+                data: this.entityStore.get(dataId, storeFieldName),
+            }))
+        ];
+    }
+
     readDataForType(typeName: string): ReadDataResult[] {
-        const entityNames = this.entityNameMap.readType(typeName);
-        return Object.values(entityNames).reduce<ReadDataResult[]>((acc, { dataId, fieldName, storeFieldNames }) => {
-            if (!fieldName) {
-                return [
-                    ...acc,
-                    {
-                        dataId,
-                        data: this.entityStore.lookup(dataId),
-                    }
-                ];
-            }
+        const entityNames = this.entityNameMap.readEntitiesForType(typeName) ?? [];
+        return Object.values(entityNames).reduce<ReadDataResult[]>((acc, entityMeta) => {
             return [
                 ...acc,
-                ...Object.keys(storeFieldNames).map(storeFieldName => ({
-                    dataId,
-                    fieldName,
-                    storeFieldName,
-                    data: this.entityStore.get(dataId, storeFieldName),
-                }))
-            ];
+                ...this.readDataEntriesForMeta(entityMeta),
+            ]
         }, [])
+    }
+
+    readDataForEntity(dataId: string, fieldName: string): ReadDataResult[] {
+        const entityName = createEntityName(dataId, fieldName);
+        const typeName = this.entityNameMap.readTypeForEntity(dataId, fieldName);
+        const entityMeta = this.entityNameMap.readEntitiesForType(typeName)[entityName];
+        return this.readDataEntriesForMeta(entityMeta);
     }
 }
