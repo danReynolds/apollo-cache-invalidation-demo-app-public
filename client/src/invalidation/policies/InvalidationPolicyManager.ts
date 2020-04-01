@@ -1,11 +1,14 @@
 import {
-    InvalidationPolicies,
     InvalidationPolicy,
     InvalidationPolicyEvent,
     InvalidationPolicyManagerConfig,
 } from './types';
 import PolicyActionBatcher from './PolicyActionBatcher';
 import { getPolicyEventHandler } from './helpers';
+
+interface InvalidationPolicyCacheOperations {
+    [key: string]: Function;
+}
 
 export default class InvalidationPolicyManager {
     private config: InvalidationPolicyManagerConfig;
@@ -33,7 +36,6 @@ export default class InvalidationPolicyManager {
         }
 
         const policyActionBatch = new PolicyActionBatcher({ cacheOperations: this.config.cacheOperations });
-        const { batchCacheOperations } = policyActionBatch;
 
         Object.keys(eventPolicyForType).forEach((typeName: string) => {
             const { cacheOperations } = this.config;
@@ -41,11 +43,11 @@ export default class InvalidationPolicyManager {
             const policyAction = eventPolicyForType[typeName];
 
             dataForType.forEach((entryData => {
-                const metaDataId = entryData.storeFieldName || entryData.dataId;
-                policyAction(batchCacheOperations, entryData, {
-                    ...policyMeta,
-                    id: metaDataId,
-                });
+                policyActionBatch.addAction(
+                    policyAction,
+                    entryData,
+                    policyMeta
+                )
             }));
         });
         policyActionBatch.run();

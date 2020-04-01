@@ -31,16 +31,10 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
       cacheOperations: {
         evict: this.evict.bind(this),
         read: this.entityStoreDataReader.readStoreByType.bind(this.entityStoreDataReader),
-        modify: this.modify.bind(this),
+        modify: this.merge.bind(this),
       }
     });
   }
-
-  // update(dataId: string, updatedData: any) {
-  //   this.data.merge(...);
-  //   this.broadcastWatches();
-  // }
-
 
   write(options: any) {
     const { variables, result } = options;
@@ -61,5 +55,16 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
     }
 
     return evicted;
+  }
+
+
+  /**
+   * Ideally we would use the InMemoryCache#modify here but it doesn't support modifying fields of a nested dataId
+   * like ROOT_QUERY.queryName
+   */
+  merge(dataId: string, updatedData: object) {
+    debugger;
+    this.entityStore.merge(dataId, updatedData);
+    this.broadcastWatches();
   }
 }

@@ -1,5 +1,5 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client";
-import { evict, update } from "./invalidation/policies/actions";
+import { evict, write } from "./invalidation/policies/actions";
 import InvalidationInMemoryCache from "./invalidation";
 
 export default new ApolloClient({
@@ -13,7 +13,7 @@ export default new ApolloClient({
       },
       EmployeesResponse: {
         onEvict: {
-          Employee: evict(({ id }) => id === "10")
+          Employee: write(data => ({ ...data, worked: true }))
         }
       }
     }

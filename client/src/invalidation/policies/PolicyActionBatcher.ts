@@ -1,55 +1,97 @@
-import { PolicyActionBatch, PolicyActionMeta, PolicyActionOperationType, PolicyActionBatchOperations } from './types';
-import { makeEntityId } from '../helpers';
+import {
+  PolicyActionBatchEntry,
+  PolicyCacheOperationKey,
+  InvalidationPolicyCacheOperations,
+  PolicyActionBatch,
+} from "./types";
+import { EntityDataResult } from "../entity-store/types";
+import { makeEntityId } from "../helpers";
 
 interface PolicyActionBatcherConfig {
-    cacheOperations: PolicyActionBatchOperations;
+  cacheOperations: InvalidationPolicyCacheOperations;
 }
+
+enum CacheOperationPriority {
+  evict,
+  modify,
+  read
+}
+
+const cacheOperationKeyPriorityMap = {
+  [PolicyCacheOperationKey.evict]: CacheOperationPriority.evict,
+  [PolicyCacheOperationKey.modify]: CacheOperationPriority.modify,
+  [PolicyCacheOperationKey.read]: CacheOperationPriority.read
+};
+
 export default class PolicyActionBatcher {
-    private batch: PolicyActionBatch = {};
+  private batch: PolicyActionBatch = {};
 
-    private config: PolicyActionBatcherConfig;
-    
-    private batchOperation = (operationType: PolicyActionOperationType) =>
-        (dataId: string, fieldName?: string, meta?: object) => this.addAction(operationType, dataId, fieldName, meta);
+  private config: PolicyActionBatcherConfig;
 
-    batchCacheOperations: PolicyActionBatchOperations = {
-        evict: this.batchOperation(PolicyActionOperationType.Evict),
-        modify: this.batchOperation(PolicyActionOperationType.Modify),
-    }
+  private batchCacheOperations: InvalidationPolicyCacheOperations;
 
-    constructor(config: PolicyActionBatcherConfig) {
-        this.config = config;
-    }
+  private pendingBatchEntityId: string | null = null;
 
-    addAction(operationType: PolicyActionOperationType, dataId: string, fieldName?: string, meta?: object) {
-        const { batch } = this;
-        const entityName = makeEntityId(dataId, fieldName);
-        const batchEntryForEntity = batch[entityName];
+  constructor(config: PolicyActionBatcherConfig) {
+    this.config = config;
+    this.batchCacheOperations = this.getBatchCacheOperations(this.config.cacheOperations);
+  }
 
-        // If multiple operations come in for the same entityName such as multiple evictions of the same entity,
-        // de-dupe them and prioritize them by ranked operation types
-        if (!batchEntryForEntity || batchEntryForEntity.operationType > operationType) {
-            batch[entityName] = {
-                operationType,
-                dataId,
-                fieldName,
-                meta,
-            }
+  getBatchCacheOperations(cacheOperations: InvalidationPolicyCacheOperations) {
+    const { batch } = this;
+    return Object.keys(cacheOperations).reduce(
+      (acc, operationKey) => ({
+        ...acc,
+        [operationKey]: (...args: any) => {
+          const batchEntityId = this.pendingBatchEntityId;
+          if (!batchEntityId) {
+            return;
+          }
+          const cacheOperationKey = operationKey as PolicyCacheOperationKey;
+          const batchEntityEntry = batch[batchEntityId];
+
+          // If multiple operations come in for the same entityName such as multiple evictions of the same entity,
+          // de-dupe them and prioritize them by ranked operation types
+          if (
+            !batchEntityEntry ||
+            cacheOperationKeyPriorityMap[batchEntityEntry.operationKey] >
+              cacheOperationKeyPriorityMap[cacheOperationKey]
+          ) {
+            batch[batchEntityId] = {
+              operationKey: cacheOperationKey,
+              args
+            };
+          }
         }
-    }
+      }),
+      {} as InvalidationPolicyCacheOperations
+    );
+  }
 
-    run() {
-        const { cacheOperations: { evict } } = this.config;
-        Object.values(this.batch).forEach(batchEntity => {
-            const { dataId, fieldName, meta } = batchEntity;
-            if (batchEntity.operationType === PolicyActionOperationType.Evict) {
-                // Eviction does not support evicting by storeFieldNames currently:
-                // https://github.com/apollographql/apollo-client/issues/6098
-                // so instead we just evict by field name, which is one of the reasons that we want to batch
-                // across many store field names that resolve to the same field name
-                evict(dataId, fieldName, meta);
-            }
-        })
-        this.batch = {};
-    }
+  addAction(
+    policyAction: Function,
+    entityData: EntityDataResult,
+    entityMeta: object
+  ) {
+    const { batch } = this;
+    const { dataId, fieldName } = entityData;
+    const metaDataId = entityData.storeFieldName || entityData.dataId;
+    const entityId = makeEntityId(dataId, fieldName);
+
+    this.pendingBatchEntityId = entityId;
+    policyAction(this.batchCacheOperations, entityData, {
+      ...entityMeta,
+      id: metaDataId
+    });
+    this.pendingBatchEntityId = null;
+  }
+
+  run() {
+    const { cacheOperations } = this.config;
+    Object.values(this.batch).forEach(({ operationKey, args }) => {
+      //@ts-ignore We do not know which operation is being executed so the typings are dynamic
+      cacheOperations[operationKey](...args);
+    });
+    this.batch = {};
+  }
 }

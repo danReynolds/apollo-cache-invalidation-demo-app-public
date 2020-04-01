@@ -1,2 +1,2 @@
 export { evict } from './evict';
-export { update } from './update';
+export { write } from './write';

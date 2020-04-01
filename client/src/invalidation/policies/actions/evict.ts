@@ -1,11 +1,10 @@
-import { PolicyActionMeta, PolicyActionOperations } from '../types';
-import { EntityDataResult } from '../../entity-store/types';
+import { PolicyAction, InvalidationPolicyCacheOperations } from '../types';
 
-export function evict(shouldEvict: Function) {
-    return ({ evict }: PolicyActionOperations, entryResult: EntityDataResult, meta: PolicyActionMeta) => {
-        const { dataId, fieldName, data } = entryResult;
+export function evict(shouldEvict: Function): PolicyAction {
+    return ({ evict }, entityData, actionMeta) => {
+        const { dataId, fieldName, data } = entityData;
 
-        if (!shouldEvict || shouldEvict(data, meta)) {
+        if (!shouldEvict || shouldEvict(data, actionMeta)) {
             evict(dataId, fieldName, data);
         }
     }
