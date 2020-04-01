@@ -31,7 +31,7 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
       cacheOperations: {
         evict: this.evict.bind(this),
         read: this.entityStoreDataReader.readStoreByType.bind(this.entityStoreDataReader),
-        modify: this.merge.bind(this),
+        modify: this.modify.bind(this),
       }
     });
   }
@@ -44,14 +44,13 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
     return super.write(options);
   }
 
-  evict(dataId: string, fieldName?: string, parent?: object) {
+  evict(dataId: string, fieldName?: string, parentData?: object) {
     const typename = this.entityTypeMap.readTypeByEntityId(makeEntityId(dataId, fieldName));
     const evicted = super.evict(dataId, fieldName);
     console.log(`Evicting ${dataId}:${fieldName} from cache`);
     
     if (evicted) {
-      debugger;
-      this.invalidationPolicyManager.runEvictPolicy(typename, { parent });
+      this.invalidationPolicyManager.runEvictPolicy(typename, { parent: { data: parentData } });
     }
 
     return evicted;
@@ -63,7 +62,6 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
    * like ROOT_QUERY.queryName
    */
   merge(dataId: string, updatedData: object) {
-    debugger;
     this.entityStore.merge(dataId, updatedData);
     this.broadcastWatches();
   }

@@ -1,20 +1,19 @@
+import _ from 'lodash';
 import {
     InvalidationPolicy,
     InvalidationPolicyEvent,
     InvalidationPolicyManagerConfig,
+    PolicyActionMeta,
+    PolicyActionCacheOperations,
 } from './types';
 import PolicyActionBatcher from './PolicyActionBatcher';
 import { getPolicyEventHandler } from './helpers';
-
-interface InvalidationPolicyCacheOperations {
-    [key: string]: Function;
-}
 
 export default class InvalidationPolicyManager {
     private config: InvalidationPolicyManagerConfig;
 
     constructor(config: InvalidationPolicyManagerConfig) {
-       this.config = config;
+        this.config = config;
     }
 
     getPolicy(typeName: string): InvalidationPolicy {
@@ -29,7 +28,7 @@ export default class InvalidationPolicyManager {
         return policyForType[getPolicyEventHandler(policyEvent)];
     }
 
-    runPolicy(typeName: string, policyEvent: InvalidationPolicyEvent, policyMeta: object) {
+    runPolicy(typeName: string, policyEvent: InvalidationPolicyEvent, policyMeta: PolicyActionMeta) {
         const eventPolicyForType = this.getPolicyForEvent(typeName, policyEvent);
         if (!eventPolicyForType) {
             return;
@@ -39,25 +38,23 @@ export default class InvalidationPolicyManager {
 
         Object.keys(eventPolicyForType).forEach((typeName: string) => {
             const { cacheOperations } = this.config;
-            const dataForType = cacheOperations.read(typeName) ?? [];
+            const entityDataResultsForType = cacheOperations.read(typeName) ?? [];
             const policyAction = eventPolicyForType[typeName];
-
-            dataForType.forEach((entryData => {
-                policyActionBatch.addAction(
-                    policyAction,
-                    entryData,
-                    policyMeta
-                )
+            entityDataResultsForType.forEach((entityDataResult => {
+                policyActionBatch.addAction(policyAction, {
+                    ...entityDataResult,
+                    ...policyMeta,
+                })
             }));
         });
         policyActionBatch.run();
     }
 
-    runWritePolicy(typeName: string, meta: object) {
-        return this.runPolicy(typeName, InvalidationPolicyEvent.Write, meta);
+    runWritePolicy(typeName: string, policyMeta: PolicyActionMeta) {
+        return this.runPolicy(typeName, InvalidationPolicyEvent.Write, policyMeta);
     }
 
-    runEvictPolicy(typeName: string, meta: object) {
-        return this.runPolicy(typeName, InvalidationPolicyEvent.Evict, meta);
+    runEvictPolicy(typeName: string, policyMeta: PolicyActionMeta) {
+        return this.runPolicy(typeName, InvalidationPolicyEvent.Evict, policyMeta);
     }
 }
