@@ -53,7 +53,15 @@ function App() {
       loading: createEmployeeLoading,
       error: createEmployeeError
     }
-  ] = useMutation(createEmployeeQuery);
+  ] = useMutation(createEmployeeQuery, {
+    optimisticResponse: {
+      __typename: "Mutation",
+      createEmployee: {
+        __typename: "CreateEmployeeResponse",
+        test: x++
+      }
+    }
+  });
 
   const handlePressEmployeesQueryButton = useCallback(() => {
     makeEmployeesQuery();

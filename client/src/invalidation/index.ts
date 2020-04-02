@@ -37,10 +37,13 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
   }
 
   write(options: any) {
+    // @ts-ignore
     const { variables, result } = options;
-    const writeResults = Object.values(result).filter((operationResult: any) => !!operationResult.__typename).forEach((operationResult: any) => {
-      this.invalidationPolicyManager.runWritePolicy(operationResult.__typename, { parent: { data: operationResult, variables } });
-    });
+    if (this.isRootLayer()) {
+      const writeResults = Object.values(result).filter((operationResult: any) => !!operationResult.__typename).forEach((operationResult: any) => {
+        this.invalidationPolicyManager.runWritePolicy(operationResult.__typename, { parent: { data: operationResult, variables } });
+      });
+    }
     return super.write(options);
   }
 
@@ -49,20 +52,15 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
     const evicted = super.evict(dataId, fieldName);
     console.log(`Evicting ${dataId}:${fieldName} from cache`);
     
-    if (evicted) {
+    if (evicted && this.isRootLayer()) {
       this.invalidationPolicyManager.runEvictPolicy(typename, { parent: { data: parentData } });
     }
 
     return evicted;
   }
 
-
-  /**
-   * Ideally we would use the InMemoryCache#modify here but it doesn't support modifying fields of a nested dataId
-   * like ROOT_QUERY.queryName
-   */
-  merge(dataId: string, updatedData: object) {
-    this.entityStore.merge(dataId, updatedData);
-    this.broadcastWatches();
+  isRootLayer() {
+    // @ts-ignore
+    return this.data === this.entityStore;
   }
 }
