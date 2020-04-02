@@ -37,7 +37,7 @@ export default class InvalidationInMemoryCache extends InMemoryCache {
   }
 
   write(options: any) {
-    // @ts-ignore
+    debugger;
     const { variables, result } = options;
     if (this.isRootLayer()) {
       const writeResults = Object.values(result).filter((operationResult: any) => !!operationResult.__typename).forEach((operationResult: any) => {
