@@ -58,7 +58,7 @@ function App() {
       __typename: "Mutation",
       createEmployee: {
         __typename: "CreateEmployeeResponse",
-        test: x++
+        test: true
       }
     }
   });
