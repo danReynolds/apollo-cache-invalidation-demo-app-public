@@ -4,7 +4,6 @@ import gql from "graphql-tag";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import logo from "./logo.svg";
 import "./App.css";
-import employee from "./invalidation/tests/fixtures/employee";
 
 const employeesQuery = gql`
   query GetEmployees($filter: String, $otherFilter: String) {
@@ -49,7 +48,7 @@ function App() {
   const [
     makeEmployeesQuery,
     { data: employeesData, loading, error },
-  ] = useLazyQuery(employeesQuery);
+  ] = useLazyQuery(employeesQuery, { fetchPolicy: "cache-only" });
   const [
     createEmployee,
     {
@@ -103,7 +102,7 @@ function App() {
         ))}
         <h2>Bosses</h2>
         {bosses.map((boss) => (
-          <div key={employee.id}>{boss.employee_name}</div>
+          <div key={boss.id}>{boss.employee_name}</div>
         ))}
       </header>
     </div>
