@@ -1,9 +1,9 @@
 import { ApolloClient, InMemoryCache } from "@apollo/client";
-import InvalidationInMemoryCache from "./invalidation";
+import { InvalidationPolicyCache } from "apollo-cache-invalidation";
 
 export default new ApolloClient({
   uri: "http://localhost:4000",
-  cache: new InvalidationInMemoryCache({
+  cache: new InvalidationPolicyCache({
     invalidationPolicies: {
       CreateEmployeeResponse: {
         onWrite: {
@@ -13,25 +13,29 @@ export default new ApolloClient({
               fieldName,
               storeFieldName,
               data,
-              parent
+              parent,
             } = cacheEntry;
             modify(dataId, {
               [fieldName]: (entry, options) => {
                 return {
                   ...entry,
-                  data: entry.data.slice(0, 5)
+                  data: entry.data.slice(0, 5),
                 };
-              }
+              },
             });
           },
+        },
+      },
+      EmployeesResponse: {
+        onEvict: {
           Employee: ({ evict }, cacheEntry) => {
             const { dataId, fieldName, data } = cacheEntry;
             if (data.id === "10") {
               evict(dataId, fieldName);
             }
-          }
-        }
-      }
-    }
-  })
+          },
+        },
+      },
+    },
+  }),
 });

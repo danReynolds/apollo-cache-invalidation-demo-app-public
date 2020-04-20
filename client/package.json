@@ -12,6 +12,7 @@
     "@types/node": "^13.9.5",
     "@types/react": "^16.9.27",
     "@types/react-dom": "^16.9.5",
+    "apollo-cache-invalidation": "file:../../apollo-cache-invalidation/apollo-cache-invalidation-0.0.1.tgz",
     "graphql": "^14.6.0",
     "lodash": "^4.17.15",
     "react": "^16.13.1",
