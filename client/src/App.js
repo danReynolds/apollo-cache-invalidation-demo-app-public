@@ -48,7 +48,9 @@ function App() {
   const [
     makeEmployeesQuery,
     { data: employeesData, loading, error },
-  ] = useLazyQuery(employeesQuery, { fetchPolicy: "cache-only" });
+  ] = useLazyQuery(employeesQuery, {
+    fetchPolicy: "cache-first",
+  });
   const [
     createEmployee,
     {
