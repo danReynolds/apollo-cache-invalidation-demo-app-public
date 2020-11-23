@@ -1,20 +1,22 @@
 const { ApolloServer, gql } = require("apollo-server");
 const { RESTDataSource } = require("apollo-datasource-rest");
 
-const API_ROUTE = "http://dummy.restapiexample.com/api/v1";
+const API_ROUTE = "https://reqres.in/api";
+
+let status = 0;
 
 // The GraphQL schema
 const typeDefs = gql`
   type Employee {
     id: ID!
-    employee_name: String!
-    employee_salary: String!
-    employee_age: String!
-    profile_image: String!
+    email: String!
+    first_name: String!
+    last_name: String!
+    avatar: String
   }
 
   type EmployeesResponse {
-    status: String!
+    status: Int!
     data: [Employee!]!
   }
 
@@ -29,9 +31,9 @@ const typeDefs = gql`
 
   type Mutation {
     createEmployee(
-      employee_name: String!
-      employee_salary: String!
-      employee_age: String!
+      email: String!
+      first_name: String!
+      last_name: String!
     ): CreateEmployeeResponse
   }
 `;
@@ -43,13 +45,13 @@ const resolvers = {
     },
     bosses: (parent, args, { dataSources }, options) => {
       return dataSources.employeesAPI.getEmployees();
-    }
+    },
   },
   Mutation: {
     createEmployee: (parent, args, { dataSources }, options) => {
       return dataSources.employeesAPI.createEmployee(args);
-    }
-  }
+    },
+  },
 };
 
 class EmployeesAPI extends RESTDataSource {
@@ -58,40 +60,44 @@ class EmployeesAPI extends RESTDataSource {
     this.baseURL = API_ROUTE;
   }
 
-  getEmployees() {
-    return this.get(`${API_ROUTE}/employees`);
+  async getEmployees() {
+    const response = await this.get(`${API_ROUTE}/users`);
+    return {
+      ...response,
+      status: status++,
+    };
   }
 
   async createEmployee(data) {
     const {
       employee_name: name,
       employee_salary: salary,
-      employee_age: age
+      employee_age: age,
     } = data;
     const result = await this.post(`${API_ROUTE}/create`, {
       name,
       salary,
-      age
+      age,
     });
     return {
       data: {
         id: result.data.id,
-        employee_name: result.data.name,
-        employee_salary: result.data.salary,
-        employee_age: result.data.age
-      }
+        email: result.data.email,
+        first_name: result.data.first_name,
+        avatar: result.data.avatar,
+      },
     };
   }
 }
 
 const dataSources = {
-  employeesAPI: new EmployeesAPI()
+  employeesAPI: new EmployeesAPI(),
 };
 
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  dataSources: () => dataSources
+  dataSources: () => dataSources,
 });
 
 server.listen().then(({ url }) => {

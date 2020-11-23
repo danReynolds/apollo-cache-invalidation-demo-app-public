@@ -4,34 +4,39 @@ import gql from "graphql-tag";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import logo from "./logo.svg";
 import "./App.css";
+import { employeeNameGetter, cache } from "./ApolloClient";
 
 const employeesQuery = gql`
   query GetEmployees($filter: String, $otherFilter: String) {
     employees(filter: $filter, otherFilter: $otherFilter) {
       data {
         id
-        employee_name
+        first_name
+        last_name
       }
+      status
     }
     bosses(filter: $filter, otherFilter: $otherFilter) {
       data {
         id
-        employee_name
+        first_name
+        last_name
       }
+      status
     }
   }
 `;
 
 const createEmployeeQuery = gql`
   mutation CreateEmployee(
-    $employee_name: String!
-    $employee_salary: String!
-    $employee_age: String!
+    $email: String!
+    $first_name: String!
+    $last_name: String!
   ) {
     createEmployee(
-      employee_name: $employee_name
-      employee_salary: $employee_salary
-      employee_age: $employee_age
+      email: $email
+      first_name: $first_name
+      last_name: $last_name
     ) {
       data {
         id
@@ -40,6 +45,8 @@ const createEmployeeQuery = gql`
     }
   }
 `;
+
+let x = 0;
 
 function App() {
   const [employeeQueryNumber, setEmployeeQueryNumber] = useState(0);
@@ -50,6 +57,13 @@ function App() {
     { data: employeesData, loading, error },
   ] = useLazyQuery(employeesQuery, {
     fetchPolicy: "cache-first",
+    onCompleted: () => {
+      cache.auditLog.printLog({
+        meta: {
+          storeFieldName: "employees({})",
+        },
+      });
+    },
   });
   const [
     createEmployee,
@@ -86,7 +100,9 @@ function App() {
   }, [createEmployee, setCreatedEmployeeIndex, createdEmployeeIndex]);
 
   const employees = _.get(employeesData, "employees.data", []);
+  const employeeStatus = _.get(employeesData, "employees.status");
   const bosses = _.get(employeesData, "bosses.data", []);
+  const bossesStatus = _.get(employeesData, "bosses.status");
 
   return (
     <div className="App">
@@ -98,13 +114,18 @@ function App() {
         <button onClick={handlePressCreateEmployeeButton}>
           Create employee
         </button>
-        <h2>Employees</h2>
+        <button onClick={() => employeeNameGetter(`Test name ${x++}`)}>
+          Update employee names
+        </button>
+        <h2>{`Employees ${employeeStatus}`}</h2>
         {employees.map((employee) => (
-          <div key={employee.id}>{employee.employee_name}</div>
+          <div
+            key={employee.id}
+          >{`${employee.first_name} ${employee.last_name}`}</div>
         ))}
-        <h2>Bosses</h2>
+        <h2>{`Bosses ${bossesStatus}`}</h2>
         {bosses.map((boss) => (
-          <div key={boss.id}>{boss.employee_name}</div>
+          <div key={boss.id}>{`${boss.first_name} ${boss.last_name}`}</div>
         ))}
       </header>
     </div>
