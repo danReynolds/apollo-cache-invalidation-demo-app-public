@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@apollo/client": "^3.0.0-rc.10",
+    "@apollo/client": "^3.3.0",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
@@ -13,7 +13,8 @@
     "@types/react": "^16.9.27",
     "@types/react-dom": "^16.9.5",
     "apollo-cache-persist": "^0.1.1",
-    "apollo-invalidation-policies": "file:../../apollo-invalidation-policies/apollo-invalidation-policies-1.0.0-beta4.tgz",
+    "apollo-invalidation-policies": "1.0.0-beta7",
+    "apollo-link": "^1.2.14",
     "graphql": "^14.6.0",
     "lodash": "^4.17.15",
     "react": "^16.13.1",
@@ -22,7 +23,7 @@
     "typescript": "^3.8.3"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "react-scripts start --no-cache",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:debug": "react-scripts --inspect-brk test --runInBand --no-cache",

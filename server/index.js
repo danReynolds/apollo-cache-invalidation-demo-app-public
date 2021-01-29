@@ -4,6 +4,7 @@ const { RESTDataSource } = require("apollo-datasource-rest");
 const API_ROUTE = "https://reqres.in/api";
 
 let status = 0;
+let employeeId = 0;
 
 // The GraphQL schema
 const typeDefs = gql`
@@ -25,7 +26,7 @@ const typeDefs = gql`
   }
 
   type Query {
-    employees(filter: String, otherFilter: String): EmployeesResponse
+    employees(filter: String, otherFilter: String): EmployeesResponse!
     bosses(filter: String, otherFilter: String): EmployeesResponse
   }
 
@@ -70,21 +71,17 @@ class EmployeesAPI extends RESTDataSource {
 
   async createEmployee(data) {
     const {
-      employee_name: name,
-      employee_salary: salary,
-      employee_age: age,
+      email,
+      first_name,
+      last_name
     } = data;
-    const result = await this.post(`${API_ROUTE}/create`, {
-      name,
-      salary,
-      age,
-    });
+    employeeId += 1;
     return {
       data: {
-        id: result.data.id,
-        email: result.data.email,
-        first_name: result.data.first_name,
-        avatar: result.data.avatar,
+        id: `created-employee-${employeeId}`,
+        email,
+        first_name: 'Dan',
+        last_name: 'Reynolds'
       },
     };
   }

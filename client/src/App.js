@@ -1,7 +1,7 @@
 import _ from "lodash";
 import React, { useCallback, useState } from "react";
 import gql from "graphql-tag";
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { useLazyQuery, useQuery, useMutation, useReactiveVar } from "@apollo/client";
 import logo from "./logo.svg";
 import "./App.css";
 import { employeeNameGetter, cache } from "./ApolloClient";
@@ -16,6 +16,11 @@ const employeesQuery = gql`
       }
       status
     }
+  }
+`;
+
+const bossesQuery = gql`
+  query GetBosses($filter: String, $otherFilter: String) {
     bosses(filter: $filter, otherFilter: $otherFilter) {
       data {
         id
@@ -28,22 +33,23 @@ const employeesQuery = gql`
 `;
 
 const createEmployeeQuery = gql`
-  mutation CreateEmployee(
-    $email: String!
+mutation CreateEmployee(
+  $email: String!
     $first_name: String!
     $last_name: String!
-  ) {
-    createEmployee(
-      email: $email
+) {
+  createEmployee(
+    email: $email
       first_name: $first_name
       last_name: $last_name
-    ) {
-      data {
-        id
-        employee_name
-      }
+  ) {
+    data {
+      id
+      first_name
+      last_name
     }
   }
+}
 `;
 
 let x = 0;
@@ -52,18 +58,24 @@ function App() {
   const [employeeQueryNumber, setEmployeeQueryNumber] = useState(0);
   const [createdEmployeeIndex, setCreatedEmployeeIndex] = useState(0);
 
+  const employeeIteration = useReactiveVar(employeeNameGetter);
+
+  const { data: eagerEmployeesData } = useQuery(employeesQuery, {
+    fetchPolicy: "cache-first",
+  });
+
   const [
     makeEmployeesQuery,
     { data: employeesData, loading, error },
   ] = useLazyQuery(employeesQuery, {
     fetchPolicy: "cache-first",
-    onCompleted: () => {
-      cache.auditLog.printLog({
-        meta: {
-          storeFieldName: "employees({})",
-        },
-      });
-    },
+  });
+
+  const [
+    makeBossesQuery,
+    { data: bossesData },
+  ] = useLazyQuery(bossesQuery, {
+    fetchPolicy: "cache-first",
   });
   const [
     createEmployee,
@@ -72,18 +84,16 @@ function App() {
       loading: createEmployeeLoading,
       error: createEmployeeError,
     },
-  ] = useMutation(createEmployeeQuery, {
-    optimisticResponse: {
-      __typename: "Mutation",
-      createEmployee: {
-        __typename: "CreateEmployeeResponse",
-        test: true,
-      },
-    },
-  });
+  ] = useMutation(createEmployeeQuery);
+
+  const handlePressBossesQueryButton = useCallback(() => {
+    makeBossesQuery();
+    setEmployeeQueryNumber(employeeQueryNumber + 1);
+  }, [makeBossesQuery, setEmployeeQueryNumber, employeeQueryNumber]);
 
   const handlePressEmployeesQueryButton = useCallback(() => {
     makeEmployeesQuery();
+    x += 1;
     setEmployeeQueryNumber(employeeQueryNumber + 1);
   }, [makeEmployeesQuery, setEmployeeQueryNumber, employeeQueryNumber]);
 
@@ -91,18 +101,23 @@ function App() {
     console.log(createdEmployeeIndex);
     createEmployee({
       variables: {
-        employee_name: `Test employee ${createdEmployeeIndex}`,
-        employee_salary: `${createdEmployeeIndex}`,
-        employee_age: `${createdEmployeeIndex}`,
+        email: `Test employee ${createdEmployeeIndex} `,
+        first_name: `${createdEmployeeIndex} `,
+        last_name: `${createdEmployeeIndex} `,
       },
     });
     setCreatedEmployeeIndex(createdEmployeeIndex + 1);
   }, [createEmployee, setCreatedEmployeeIndex, createdEmployeeIndex]);
 
-  const employees = _.get(employeesData, "employees.data", []);
-  const employeeStatus = _.get(employeesData, "employees.status");
-  const bosses = _.get(employeesData, "bosses.data", []);
-  const bossesStatus = _.get(employeesData, "bosses.status");
+  const handleEvictEmployeeButton = useCallback(() => {
+    console.log(cache);
+    cache.evict('Employee:1');
+  });
+
+  const employees = _.get(eagerEmployeesData, "employees.data", []);
+  const employeeStatus = _.get(eagerEmployeesData, "employees.status");
+  const bosses = _.get(bossesData, "bosses.data", []);
+  const bossesStatus = _.get(bossesData, "bosses.status");
 
   return (
     <div className="App">
@@ -111,21 +126,27 @@ function App() {
         <button onClick={handlePressEmployeesQueryButton}>
           Employees query
         </button>
+        <button onClick={handlePressBossesQueryButton}>
+          Bosses query
+        </button>
         <button onClick={handlePressCreateEmployeeButton}>
           Create employee
         </button>
-        <button onClick={() => employeeNameGetter(`Test name ${x++}`)}>
-          Update employee names
+        <button onClick={handleEvictEmployeeButton}>
+          Evict employee
         </button>
-        <h2>{`Employees ${employeeStatus}`}</h2>
+        <button onClick={() => employeeNameGetter(++x)}>
+          {`Update employee names ${employeeIteration}`}
+        </button>
+        <h2>{`Employees ${employeeStatus} `}</h2>
         {employees.map((employee) => (
           <div
             key={employee.id}
-          >{`${employee.first_name} ${employee.last_name}`}</div>
+          >{`${employee.first_name} ${employee.last_name} `}</div>
         ))}
-        <h2>{`Bosses ${bossesStatus}`}</h2>
+        <h2>{`Bosses ${bossesStatus} `}</h2>
         {bosses.map((boss) => (
-          <div key={boss.id}>{`${boss.first_name} ${boss.last_name}`}</div>
+          <div key={boss.id}>{`${boss.first_name} ${boss.last_name} `}</div>
         ))}
       </header>
     </div>

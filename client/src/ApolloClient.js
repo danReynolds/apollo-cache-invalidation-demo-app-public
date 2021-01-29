@@ -1,41 +1,30 @@
 import { ApolloClient, InMemoryCache, makeVar } from "@apollo/client";
 import { persistCache } from "apollo-cache-persist";
-import { InvalidationPolicyCacheAuditor } from "apollo-invalidation-policies";
+import { InvalidationPolicyCache } from "apollo-invalidation-policies";
+import { ApolloLink, Observable } from 'apollo-link';
+export const employeeNameGetter = makeVar(0);
 
-export const employeeNameGetter = makeVar("test");
+let x = 0;
 
-export const cache = new InvalidationPolicyCacheAuditor({
+export const cache = new InvalidationPolicyCache({
   typePolicies: {
-    // Employee: {
-    //   fields: {
-    //     __typename: {
-    //       read(_, { variables }) {
-    //         return employeeNameGetter();
-    //       },
-    //       merge(args1, args2, args3) {
-    //         debugger;
-    //         return args1;
-    //       },
-    //     },
-    //   },
-    // },
-    Employee: {
+    Query: {
       fields: {
-        first_name: {
-          read(existingName, { storage }) {
-            debugger;
-            if (!storage.name) {
-              storage.name = existingName;
-            }
-          },
-          merge(existingName, incomingName, { storage }) {
-            debugger;
-            console.log(storage);
-            return incomingName;
-          },
+        employeesTypePolicy: {
+          read(_current, { readField }) {
+            const y = readField({ fieldName: 'bosses', args: {} });
+            return y;
+          }
         },
-      },
-    },
+        bossesTypePolicy: {
+          read(_current, { readField }) {
+            const y = readField('employeesTypePolicy');
+            console.log("bossesTypePolicy");
+            return y;
+          }
+        }
+      }
+    }
   },
   invalidationPolicies: {
     timeToLive: 5000,
@@ -56,14 +45,31 @@ export const cache = new InvalidationPolicyCacheAuditor({
       //   },
       // },
       // },
-      // CreateEmployeeResponse: {
-      // onWrite: {
-      //   EmployeesResponse: ({ modify, evict }, { fieldName }) => {
-      //     debugger;
-      //     evict({ fieldName });
-      //   },
-      // },
-      // },
+      CreateEmployeeResponse: {
+        onWrite: {
+          EmployeesResponse: ({ modify, readField }, { fieldName, storeFieldName, parent }) => {
+            debugger;
+            const createEmployeeResponse = readField({
+              fieldName: parent.fieldName,
+              from: parent.ref,
+              args: parent.variables,
+            });
+            modify({
+              fields: {
+                [storeFieldName]: (employeesResponse) => {
+                  return {
+                    ...employeesResponse,
+                    data: [
+                      ...employeesResponse.data,
+                      createEmployeeResponse.data,
+                    ]
+                  }
+                }
+              }
+            })
+          },
+        },
+      },
       // EmployeesResponse: {
       //   timeToLive: 10000,
       //   onEvict: {
